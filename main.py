@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
+from dotenv import load_dotenv
 
 from api.affinity import affinity_model
 
@@ -24,5 +25,7 @@ app.add_middleware(
 )
 
 if __name__ == "__main__":
+    # Load .env file
+    load_dotenv()
     app.include_router(affinity_model)
     uvicorn.run(app, host="0.0.0.0", port=9554)

@@ -7,8 +7,11 @@ import yaml
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
 from affinity.calculate import Graph
 from affinity.models import Node, SingleSchedulerPlan, BasePod, BaseNode, Communication
+import service.affinity_tool_service as affinity_tool_service
+import service.models.affinity_tool_models as affinity_tool_models
+from affinity.schedule_operator import operate_schedule
 from util.kuber_api import deploy_from_yaml_str
-from util.logger import report_event, EventType
+
 from util.time_util import now_millis
 
 last_plan: list[SingleSchedulerPlan] = []
@@ -111,33 +114,41 @@ def dynamic_plan(node_resource: list[Node], pods: list[BasePod], last_pods_affin
 def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
                      comm_data: list[Communication],
                      new_pods: list[BasePod], node_resource: list[Node]):
-    report_event(exp_id=exp_id,
-                 _type=EventType.AGENT_COMMUNICATION_RELATION_CHANGE)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.AGENT_COMMUNICATION_RELATION_CHANGE)
 
     g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
     # 上报动态亲和性评分
-    report_event(exp_id=exp_id,
-                 _type=EventType.DYNAMIC_AFFINITY_SCORING_START)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_AFFINITY_SCORING_START)
 
     _start = now_millis()
     pod_affinity, _ = g.cal_affinity()
     _end = now_millis()
     # 上报完成动态亲和性评分事件
-    report_event(exp_id=exp_id, _type=EventType.DYNAMIC_AFFINITY_SCORING_COMPLETE, duration=_end - _start)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_AFFINITY_SCORING_COMPLETE,
+                                       duration=_end - _start)
 
     # 上报生成动态亲和性策略
-    report_event(exp_id=exp_id, _type=EventType.DYNAMIC_SCHEDULING_POLICY_GENERATION_START)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_GENERATION_START)
     _start = now_millis()
     plan = dynamic_plan(node_resource, new_pods, pod_affinity)
     _end = now_millis()
     # 上报完成动态亲和性策略
-    report_event(exp_id=exp_id, _type=EventType.DYNAMIC_SCHEDULING_POLICY_COMPLETE, duration=_end - _start)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_COMPLETE,
+                                       duration=_end - _start)
+
+    affinity_tool_service.sync_agents_graph(
+        affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
+                                             pod2idx=pod2idx))
 
     agents = read_excel_and_construct_agents(pods_data, plan)
     deploys = read_excel_and_generate_yamls(agents, comm_data)
 
     # 上报执行动态调整策略
-    report_event(exp_id=exp_id, _type=EventType.DYNAMIC_SCHEDULING_POLICY_EXECUTION)
-    for _deploy in deploys:
-        yaml_docs = yaml.safe_load_all(_deploy)
-        deploy_from_yaml_str(yaml_docs)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_EXECUTION)
+    operate_schedule(exp_id=exp_id, deploys=deploys)

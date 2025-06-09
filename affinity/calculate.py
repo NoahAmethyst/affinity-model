@@ -123,6 +123,7 @@ def load_pods(pods_excel):
     return pods, pod2idx
 
 
+
 def load_comm(comm_excel):
     comm: list[Communication] = []
     for _, row in comm_excel.iterrows():
@@ -130,7 +131,7 @@ def load_comm(comm_excel):
     return comm
 
 
-def load_nodes(nodes_excel):
+def load_nodes(nodes_excel)->list[BaseNode]:
     nodes: list[BaseNode] = []
     for _, row in nodes_excel.iterrows():
         node = BaseNode.from_dataframe(row)

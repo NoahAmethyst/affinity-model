@@ -17,8 +17,13 @@ from affinity.dynamic_schedule import set_last_plan
 from affinity.models import BaseNode, BasePod, BaseObject, Communication
 from affinity.offline_scheduler import Scheduler
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
+import service.affinity_tool_service as affinity_tool_service
+import service.models.affinity_tool_models as affinity_tool_models
+from affinity.schedule_operator import operate_schedule
+
 from util.kuber_api import deploy_from_yaml_str
-from util.logger import logger, report_event, EventType
+from util.logger import logger
+
 from util.time_util import now_millis
 
 
@@ -350,23 +355,29 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
                     comm_data: list[Communication]):
     g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
     # 上报静态调度开始事件
-    report_event(exp_id=exp_id, message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',
-                 _type=EventType.STATIC_SCHEDULING_START)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_START)
 
     # 上报开始静态亲和性评分事件
-    report_event(exp_id=exp_id, _type=EventType.STATIC_AFFINITY_SCORING_START)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_START)
 
     _start = now_millis()
     pod_affinity, node_affinity = g.cal_affinity()
     _end = now_millis()
     # 上报完成静态亲和性评分事件
-    report_event(exp_id=exp_id, _type=EventType.STATIC_AFFINITY_SCORING_COMPLETE, duration=_end - _start)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_COMPLETE,
+                                       duration=_end - _start)
 
     scheduler = MultiStageScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
                                     node_affinity=node_affinity)
 
     # 上报开始生成静态亲和性调度策略
-    report_event(exp_id=exp_id, _type=EventType.STATIC_SCHEDULING_POLICY_GENERATION_START, duration=_end - _start)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_GENERATION_START,
+                                       duration=_end - _start)
     ### schedule
     _start = now_millis()
     _plan = scheduler.schedule(enable_draw=False)
@@ -374,16 +385,24 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
     plan = scheduler.check_and_gen(scheduler, _plan)
     _end = now_millis()
     # 上报完成静态亲和性调度策略的生成
-    report_event(exp_id=exp_id, _type=EventType.SCHEDULING_POLICY_GENERATION_COMPLETE, duration=_end - _start)
+
+    # 同步亲和性调度详情数据
+    affinity_tool_service.sync_agents_graph(
+        affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
+                                             pod2idx=pod2idx))
+
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.SCHEDULING_POLICY_GENERATION_COMPLETE,
+                                       duration=_end - _start)
 
     agents = read_excel_and_construct_agents(pods_data, plan)
     deploys = read_excel_and_generate_yamls(agents, comm_data)
 
     # 上报执行调度策略
-    report_event(exp_id=exp_id, _type=EventType.STATIC_SCHEDULING_POLICY_EXECUTION, duration=_end - _start)
-    for _deploy in deploys:
-        yaml_docs = yaml.safe_load_all(_deploy)
-        deploy_from_yaml_str(yaml_docs)
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_EXECUTION,
+                                       duration=_end - _start)
+    operate_schedule(exp_id=exp_id, deploys=deploys)
 
     # 记录上一轮调度计划
     set_last_plan(plan)

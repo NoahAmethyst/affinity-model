@@ -67,11 +67,17 @@ class BasePod(BaseObject):
     static_columns = ["name", "cpu", "mem", "gpu", "disk", "platform", "change_type", "delay"]
     affinity_weight = [100, 1, 1, 1]
 
-    def __init__(self, name="", cpu=0, mem=0, gpu=0, disk=0, platform="", change_type=None, delay=None):
+    def __init__(self, name="", cpu=0, mem=0, gpu=0, disk=0, platform="", change_type=None, delay=0):
         super().__init__(name, cpu, mem, gpu, disk)
         self.platform = platform
-        self.change_type = change_type
-        self.delay = delay
+        if str(change_type) == 'nan':
+            self.change_type = None
+        else:
+            self.change_type = change_type
+        if str(delay) == 'nan':
+            self.delay = None
+        else:
+            self.delay = delay
 
     def __str__(self):
         return super().__str__()
@@ -238,19 +244,29 @@ class BasePlatform:
 
 
 class Communication:
-    static_columns = ['target', 'source', 'frequency', 'package', 'count']
+    static_columns = ['target', 'source', 'frequency', 'package', 'count', 'change_type', 'delay']
     src_pod = None
     tgt_pod = None
     freq = None
     package = None
     count = None
+    change_type = None
+    delay = None
 
-    def __init__(self, src, tgt, freq, pak, cnt):
+    def __init__(self, src, tgt, freq, pak, cnt, change_type, delay):
         self.src_pod = src
         self.tgt_pod = tgt
         self.freq = freq
         self.package = pak
         self.count = cnt
+        if str(change_type) == 'nan':
+            self.change_type = None
+        else:
+            self.change_type = change_type
+        if str(delay) == 'nan':
+            self.delay = None
+        else:
+            self.delay = delay
 
     def get_data(self) -> []:
         return [self.tgt_pod, self.src_pod, self.freq, self.package, self.count]
