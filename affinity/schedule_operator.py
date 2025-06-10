@@ -2,12 +2,14 @@ import os
 
 import yaml
 
-from util.kuber_api import deploy_from_yaml_str, create_namespace, delete_all_deployments_in_namespace
+from util.kuber_api import deploy_from_yaml_str, create_namespace, delete_all_deployments_in_namespace, \
+    create_service_monitor
 from util.logger import logger
 
 EXP_NAMESPACE = 'affinity-exp'
 
 STOPED_EXP: dict[int, bool] = {}
+MONITORING_EXP: dict[int, bool] = {}
 
 
 def operate_schedule(exp_id: int, deploys: list[str]):
@@ -16,6 +18,11 @@ def operate_schedule(exp_id: int, deploys: list[str]):
     if _namespace_ is None:
         _namespace = 'default'
 
+    # deploy service-monitor
+    if not MONITORING_EXP.get(exp_id):
+        create_service_monitor(_namespace_)
+        MONITORING_EXP.__setitem__(exp_id, True)
+    logger.info(f'Creating service for {_namespace}')
     for _deploy in deploys:
         yaml_docs = yaml.safe_load_all(_deploy)
         deploy_from_yaml_str(yaml_docs, _namespace)

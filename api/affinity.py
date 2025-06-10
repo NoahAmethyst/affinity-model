@@ -14,8 +14,8 @@ affinity_model = APIRouter(
 
 
 @affinity_model.post("/start_schedule/{exp_id}", response_model=BaseResponse,
-                     summary="亲和性模型",
-                     tags=['触发亲和性调度'])
+                     summary="开启调度任务",
+                     tags=['亲和性模型'])
 async def start_schedule(exp_id: int, file: UploadFile = File(...),
                          background_tasks: BackgroundTasks = BackgroundTasks()):
     # 检查文件类型
@@ -32,8 +32,8 @@ async def start_schedule(exp_id: int, file: UploadFile = File(...),
 
 
 @affinity_model.delete("/stop_schedule/{exp_id}", response_model=BaseResponse,
-                       summary="亲和性模型",
-                       tags=['停止调度'])
+                       summary="停止调度",
+                       tags=['亲和性模型'])
 async def stop_schedule(exp_id: int, background_tasks: BackgroundTasks = BackgroundTasks()):
     affinity_tool_service.report_event(exp_id=exp_id, _type=affinity_tool_models.EventType.EXPERIMENT_END)
     background_tasks.add_task(terminate_schedule, exp_id=exp_id)

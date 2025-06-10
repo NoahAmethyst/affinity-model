@@ -193,3 +193,6 @@ def test_load_data():
         print(f'{_agents_affinity}')
 
 
+
+
+

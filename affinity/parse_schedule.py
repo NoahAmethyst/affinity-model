@@ -22,7 +22,7 @@ class Agent:
         self.node = ""
 
 
-def read_excel_and_construct_agents(pods_data:list[BasePod], plan: list[SingleSchedulerPlan]) -> Dict[str, Agent]:
+def read_excel_and_construct_agents(pods_data: list[BasePod], plan: list[SingleSchedulerPlan]) -> Dict[str, Agent]:
     agents_dict = {}
 
     # 读取资源信息
@@ -167,3 +167,5 @@ spec:
                                                                                                                package,
                                                                                                                target,
                                                                                                                amount)
+
+
