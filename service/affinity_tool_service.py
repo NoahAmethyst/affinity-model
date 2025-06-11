@@ -9,7 +9,7 @@ import numpy as np
 from affinity.models import SingleSchedulerPlan, Communication
 from service.models.affinity_tool_models import EventType, ExperimentData, NodeAgentsInfo, InteractionDetail, \
     AffinityValue
-from util.constant import AFFINITY_SERVER, AFFINITY_PORT
+from util.constant import AFFINITY_SERVER, AFFINITY_PORT, REPORT_EVENT
 from util.logger import logger
 from util.time_util import now_millis
 
@@ -20,6 +20,9 @@ affinity_cli = http.client.HTTPConnection(_host, int(_port))
 
 def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
                  duration: Optional[int] = None):
+    s = int(os.getenv(REPORT_EVENT))
+    if int(os.getenv(REPORT_EVENT)) == 0:
+        return
     try:
         payload = json.dumps({
             "exp_id": exp_id,
@@ -58,6 +61,8 @@ def build_exp_data(exp_id: int, plans: list[SingleSchedulerPlan], comm_data: lis
 
 
 def sync_agents_graph(exp_data: ExperimentData):
+    if int(os.getenv(REPORT_EVENT)) == 0:
+        return
     try:
         logger.info(f'sync agents graph data,exp_id:{exp_data.exp_id}')
         headers = {

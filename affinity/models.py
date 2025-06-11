@@ -196,6 +196,12 @@ class BaseNode(BaseObject):
             result.disk = used.disk / self.disk
         return result
 
+    def limit(self, ratio: float) -> 'BaseNode':
+        return BaseNode(
+            name='', cpu=int(self.cpu * ratio), mem=int(self.mem * ratio),
+            gpu=int(self.gpu * ratio), disk=int(self.disk * ratio), net=int(self.net * ratio)
+        )
+
     def __add__(self, other):
         result = super().__add__(other)
         result.__class__ = BaseNode

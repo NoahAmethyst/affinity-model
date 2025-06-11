@@ -2,6 +2,7 @@
 import copy
 import os
 from io import BytesIO
+from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -41,7 +42,22 @@ class MultiStageScheduler(Scheduler):
         if enable_draw:
             self.draw_init()
         ### 聚类
-        clusters, cluster_sum, affinity = self.gpu_cluster()
+        _gpu_node_num = 0
+        _max_gpu_pod_per_node = 0
+        _limit_node = None
+        for _node in self.nodes:
+            if _node.gpu > 0:
+                if _limit_node is None:
+                    _limit_node = _node.limit(ratio=0.9)
+                _node_limit = _node
+                _gpu_node_num += 1
+                _max_gpu_pod_per_node += 17
+            if _limit_node is None:
+                _limit_node = _node.limit(ratio=0.9)
+
+        clusters, cluster_sum, affinity = self.gpu_cluster(gpu_node_num=_gpu_node_num,
+                                                           max_gpu_pod_per_node=_max_gpu_pod_per_node,
+                                                           max_normal_pod_per_node=50, node_limit=_limit_node)
 
         ### 映射到Node
         clusters = self.first_fit_mapper(clusters)
@@ -53,14 +69,12 @@ class MultiStageScheduler(Scheduler):
         plan = self.cluster_to_plan(clusters)
         return plan
 
-    def gpu_cluster(self):
+    def gpu_cluster(self, gpu_node_num: Optional[int] = 0, node_limit: Optional[BaseNode] = None,
+                    max_gpu_pod_per_node: Optional[int] = 0, max_normal_pod_per_node: Optional[int] = 17):
         ### 超参数
-        gpu_node_num = 0
-        # 簇最大资源限制
-        max_obj = BaseNode("", 45, 240 * 1024, 0 * 1024, 1572864, 10000)
 
-        max_gpu_pod_per_node = 0
-        max_normal_pod_per_node = 17
+        # 簇最大资源限制
+        node_limit = BaseNode("", 45, 240 * 1024, 0 * 1024, 1572864, 10000)
 
         ### 先根据gpu进行聚类
         gpu_affinity = np.copy(self.pod_affinity)
@@ -82,7 +96,7 @@ class MultiStageScheduler(Scheduler):
             n_cluster,
             gpu_affinity,
             copy.deepcopy(self.pods),
-            max_obj,
+            node_limit,
             draw=self.draw_merge,
             max_num=max_gpu_pod_per_node,
             exclude=exclude,
@@ -98,7 +112,7 @@ class MultiStageScheduler(Scheduler):
             n_cluster=n_cluster,
             affinity=affinity,
             cluster_sum=cluster_sum,
-            max_obj=max_obj,
+            max_obj=node_limit,
             draw=self.draw_merge,
             max_num=max_normal_pod_per_node,
             exclude=None,
