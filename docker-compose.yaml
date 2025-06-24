@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  affinity-model:
+    image: affinity-model:latest  # 替换为你的镜像名称
+    container_name: affinity-model
+    ports:
+      - "9554:9554"
+    volumes:
+      - config/.env:/app/.env
+    working_dir: /app
+    restart: unless-stopped

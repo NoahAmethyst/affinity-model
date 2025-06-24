@@ -6,7 +6,7 @@ COPY requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
-EXPOSE 9553
+EXPOSE 9554
 
 WORKDIR /app
 
