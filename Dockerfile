@@ -4,7 +4,7 @@ WORKDIR /app
 COPY . /.
 COPY requirements.txt requirements.txt
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 EXPOSE 9554
 

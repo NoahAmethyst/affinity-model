@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 
 import pandas as pd
@@ -5,6 +6,7 @@ import argparse
 import logging
 
 from affinity.models import SingleSchedulerPlan, Communication, BasePod
+from util.constant import MOCK_AGENT_IMAGE
 from util.logger import logger
 
 
@@ -136,7 +138,7 @@ spec:
         agent: {node}
       containers:
         - name: {name}
-          image: registry.cn-hangzhou.aliyuncs.com/lexmargin/agent:v0.5
+          image: {os.getenv(MOCK_AGENT_IMAGE)}
           command: ["python3", "/agent/main.py", "-c", "{cpu}", "-m", "{memory}", "-f", "{frequency}", "-p", "{package}", "-t", "{target}", "-a", "{amount}"]
           ports:
           - containerPort: 11111
@@ -167,5 +169,3 @@ spec:
                                                                                                                package,
                                                                                                                target,
                                                                                                                amount)
-
-
