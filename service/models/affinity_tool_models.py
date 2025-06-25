@@ -159,6 +159,8 @@ class EventType(IntEnum):
     AFFINITY_SCHEDULING_FREQUENCY = 16
     """亲和性调度频率"""
 
+    CUSTOM_EVENT=16
+
     @classmethod
     def get_description(cls, value: int) -> str:
         """获取枚举值的描述文本"""

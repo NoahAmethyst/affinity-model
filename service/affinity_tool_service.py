@@ -16,10 +16,12 @@ from util.time_util import now_millis
 _host = os.getenv(AFFINITY_SERVER)
 _port = os.getenv(AFFINITY_PORT)
 affinity_cli = http.client.HTTPConnection(_host, int(_port))
+CURR_EXP_ID = 0
 
 
 def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
                  duration: Optional[int] = None):
+    CURR_EXP_ID = exp_id
     s = int(os.getenv(REPORT_EVENT))
     if int(os.getenv(REPORT_EVENT)) == 0:
         return

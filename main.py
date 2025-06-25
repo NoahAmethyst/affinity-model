@@ -6,6 +6,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 from api.affinity import affinity_model
+from service.process_listener import start_socket_server
 
 # 初始化 FastAPI 应用
 app = FastAPI(
@@ -28,4 +29,5 @@ if __name__ == "__main__":
     # Load .env file
     load_dotenv()
     app.include_router(affinity_model)
+    start_socket_server()
     uvicorn.run(app, host="0.0.0.0", port=9554)

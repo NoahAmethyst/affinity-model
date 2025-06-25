@@ -8,5 +8,6 @@ services:
       - "9554:9554"
     volumes:
       - config/.env:/app/.env
+      - config/kube_config.yaml:/app/kube_config.yaml
     working_dir: /app
     restart: unless-stopped
