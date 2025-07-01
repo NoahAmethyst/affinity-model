@@ -159,7 +159,8 @@ class EventType(IntEnum):
     AFFINITY_SCHEDULING_FREQUENCY = 16
     """亲和性调度频率"""
 
-    CUSTOM_EVENT=16
+    CUSTOM_EVENT = 17
+    """仿真进程控制指令"""
 
     @classmethod
     def get_description(cls, value: int) -> str:
@@ -180,6 +181,7 @@ class EventType(IntEnum):
             13: "动态亲和性调度策略完成",
             14: "执行动态调度策略",
             15: "试验结束",
-            16: "亲和性调度频率"
+            16: "亲和性调度频率",
+            17: "仿真进程控制指令"
         }
         return descriptions.get(value, "未知事件类型")
