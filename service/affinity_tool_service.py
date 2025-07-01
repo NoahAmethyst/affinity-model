@@ -28,7 +28,7 @@ def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
     try:
         payload = json.dumps({
             "exp_id": exp_id,
-            "type": message,
+            "type": _type,
             "message": message,
             "trigger_at": now_millis(),
             "duration": duration

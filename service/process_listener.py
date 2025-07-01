@@ -45,7 +45,7 @@ command_queue = queue.Queue()
 def udp_listener():
     """监听控制指令的UDP服务"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0',int(os.getenv(SOCKET_PORT))))
+    sock.bind(('0.0.0.0', int(os.getenv(SOCKET_PORT))))
     print(f"监听控制指令中 (端口 {os.getenv(SOCKET_PORT)})...")
 
     while True:
@@ -61,6 +61,7 @@ def udp_listener():
             if header != CMD_HEADER:
                 logger.warn(f"帧头校验失败: 收到 0x{header:04X}, 期望 0x{CMD_HEADER:04X}")
                 continue
+            logger.info(f'接收到控制指令：{cmd}')
 
             # 将时间戳转换为可读格式
             human_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp / 1e9))
@@ -131,6 +132,7 @@ def status_sender():
             )
 
             # 发送UDP数据包
+            logger.info(f'发送状态反馈：{data}')
             sock.sendto(data, (os.getenv(SOCKET_SERVER), int(os.getenv(SOCKET_PORT))))
 
             time.sleep(update_interval)
