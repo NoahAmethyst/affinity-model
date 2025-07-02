@@ -63,4 +63,9 @@ spec:
       port: 9554
       targetPort: 9554
       nodePort: 30054
+    - name: affinity-model-socket
+      protocol: TCP
+      port: 12345
+      targetPort: 12345
+      nodePort: 30123
   type: NodePort
