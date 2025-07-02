@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: affinity-model
+  annotations:
+    update-timestamp: "2"
+  labels:
+    app: affinity-model
+spec:
+  selector:
+    matchLabels:
+      app: affinity-model
+  replicas: 1
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: affinity-model
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/lexmargin/affinity-model:latest
+          name: affinity-model
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9554
+              protocol: TCP
+          env:
+            - name: AFFINITY_SERVER
+              value: "192.168.2.69"
+            - name: AFFINITY_PORT
+              value: "9553"
+            - name: REPORT_EVENT
+              value: "1"
+            - name: MOCK_AGENT_IMAGE
+              value: "registry.cn-hangzhou.aliyuncs.com/lexmargin/agent:v0.5"
+            - name: SOCKET_SERVER
+              value: "172.168.0.200"
+            - name: SOCKET_PORT
+              value: "12345"
+            - name: LISTENING
+              value: "0"
+          volumeMounts:
+            - mountPath: /tmp
+              name: data-path
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: affinity-model
+  labels:
+    app: affinity-model
+spec:
+  selector:
+    app: affinity-model
+  ports:
+    - name: affinity-model-port
+      protocol: TCP
+      port: 9554
+      targetPort: 9554
+      nodePort: 9554
+  type: NodePort

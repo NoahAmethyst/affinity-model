@@ -7,7 +7,7 @@ import queue
 
 from service.affinity_tool_service import report_event, CURR_EXP_ID
 from service.models.affinity_tool_models import EventType
-from util.constant import SOCKET_SERVER, SOCKET_PORT
+from util.constant import SOCKET_SERVER, SOCKET_PORT, LISTENING
 from util.logger import logger
 
 # 协议常量
@@ -148,6 +148,9 @@ def status_sender():
 
 
 def start_socket_server():
+    if int(os.getenv(LISTENING)) == 0:
+        return
+
     # 启动监听线程
     listener_thread = threading.Thread(target=udp_listener, daemon=True)
     listener_thread.start()
