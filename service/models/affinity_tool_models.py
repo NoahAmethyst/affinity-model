@@ -78,11 +78,11 @@ class AffinityValue:
     affinity_value: str
 
     @staticmethod
-    def load(pod_affinity: np.ndarray, idx2pod: dict):
+    def load(pod_affinity: np.ndarray, pods):
         affinity_values = []
         n = pod_affinity.shape[0]
         # 创建反向映射 {index: pod_name}
-        pod2idx_reverse = {v: k for k, v in idx2pod.items()}
+        # pod2idx_reverse = {v: k for k, v in idx2pod.items()}
 
         for i in range(n):
             for j in range(i, n):  # 只遍历上三角矩阵避免重复
@@ -91,8 +91,10 @@ class AffinityValue:
                     value_str = f"{value:.6f}".rstrip('0').rstrip('.') if '.' in f"{value:.6f}" else str(value)
                     affinity_values.append(
                         AffinityValue(
-                            source_agent=pod2idx_reverse[i],  # 使用反向映射
-                            target_agent=pod2idx_reverse[j],
+                            # source_agent=pod2idx_reverse[i],  # 使用反向映射
+                            # target_agent=pod2idx_reverse[j],
+                            source_agent=pods[i],  # 使用反向映射
+                            target_agent=pods[j],
                             affinity_value=value_str
                         )
                     )

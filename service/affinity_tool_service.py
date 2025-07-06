@@ -30,7 +30,7 @@ def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
             "exp_id": exp_id,
             "type": _type,
             "message": message,
-            "trigger_at": now_millis(),
+            "trigger_at": now_millis() // 1000,
             "duration": duration
         })
         headers = {
@@ -46,12 +46,12 @@ def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
 
 
 def build_exp_data(exp_id: int, plans: list[SingleSchedulerPlan], comm_data: list[Communication],
-                   pod_affinity: np.ndarray, pod2idx: dict[str, int]):
+                   pod_affinity: np.ndarray, pods):
     agents_node_info = NodeAgentsInfo.load(plans)
 
     interaction_details = InteractionDetail.load(comm_data)
 
-    agents_affinity = AffinityValue.load(pod_affinity, pod2idx)
+    agents_affinity = AffinityValue.load(pod_affinity, pods)
 
     return ExperimentData(
         exp_id=exp_id,

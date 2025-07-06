@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octo-web
+  annotations:
+    update-timestamp: "2"
+  labels:
+    app: octo-web
+spec:
+  selector:
+    matchLabels:
+      app: octo-web
+  replicas: 1
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: octo-web
+    spec:
+      nodeSelector:
+        app: octo  # 指定节点名称
+      terminationGracePeriodSeconds: 10
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/lexmargin/octo-web:0703
+          name: octo-web
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+      volumes:
+        - name: nginx-config
+          hostPath:
+            path: /root/config/nginx.conf
+            type: FileOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: octo-web
+  labels:
+    app: octo-web
+spec:
+  selector:
+    app: octo-web
+  ports:
+    - name: octo-web-port
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30808
+  type: NodePort

@@ -58,6 +58,7 @@ def exec_schedule(exp_id: int, contents):
             if _task_pods.get(_pod.delay) is None:
                 _task_pods.__setitem__(_pod.delay, [])
             _task_pods[_pod.delay].append(_pod)
+
         else:
             pods_data.append(_pod)
             pod2idx.__setitem__(_pod.name, _pod2idx.get(_pod.name))

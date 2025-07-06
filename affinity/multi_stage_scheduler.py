@@ -403,7 +403,7 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
     # 同步亲和性调度详情数据
     affinity_tool_service.sync_agents_graph(
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
-                                             pod2idx=pod2idx))
+                                             pods=pods_data))
 
     affinity_tool_service.report_event(exp_id=exp_id,
                                        _type=affinity_tool_models.EventType.SCHEDULING_POLICY_GENERATION_COMPLETE,

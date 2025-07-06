@@ -1,0 +1,84 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octo-api
+  annotations:
+    update-timestamp: "2"
+  labels:
+    app: octo-api
+spec:
+  selector:
+    matchLabels:
+      app: octo-api
+  replicas: 1
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: octo-api
+    spec:
+      nodeSelector:
+        app: octo  # 指定节点名称
+      terminationGracePeriodSeconds: 10
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/lexmargin/octo-api:0703
+          name: octo-api
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9554
+              protocol: TCP
+          env:
+            - name: PROMETHEUS_URL
+              value: "172.16.66.207:30090"
+            - name: HARBOR_URL
+              value: "hub.nju.rl"
+            - name: HARBOR_USERNAME
+              value: "admin"
+            - name: HARBOR_PASSWORD
+              value: "Harbor12345"
+            - name: EXP_URL
+              value: "172.16.66.207:30054"
+            - name: DOCKER_URL
+              value: "http://192.168.0.80:2375"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              value: "root123"
+            - name: DB_DATABASE
+              value: "octo-http-test"
+            - name: DB_HOST
+              value: "172.16.66.207"
+            - name: DB_PORT
+              value: "30306"
+          volumeMounts:
+            - name: kube-config
+              mountPath: /app/kube_config.yaml
+      volumes:
+        - name: kube-config
+          hostPath:
+            path: /root/config/kube_config.yaml
+            type: FileOrCreate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: octo-api
+  labels:
+    app: octo-api
+spec:
+  selector:
+    app: octo-api
+  ports:
+    - name: octo-api-port
+      protocol: TCP
+      port: 9553
+      targetPort: 9553
+      nodePort: 30053
+  type: NodePort

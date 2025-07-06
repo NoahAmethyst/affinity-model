@@ -171,9 +171,9 @@ def delete_all_deployments_in_namespace(namespace):
                     namespace=namespace,
                     body=client.V1DeleteOptions()
                 )
-                logger.info(f"delete Deployment: {deployment.metadata.name}")
+                logger.info(f"delete Deployment: {deployment.metadata.name} in namespace {namespace}")
             except client.exceptions.ApiException as e:
-                logger.error(f"delete Deployment {deployment.metadata.name} failed: {e}")
+                logger.error(f"delete namespace {namespace} Deployment {deployment.metadata.name} failed: {e}")
 
         logger.info(f"delete all deployments from namespace {namespace} ")
 
@@ -221,10 +221,9 @@ def create_service_monitor(namespace: str):
             plural="servicemonitors",  # 注意复数形式可能是 servicemonitors 而不是 service-monitors
             body=service_monitor
         )
-        print("ServiceMonitor created successfully")
+        logger.info("ServiceMonitor created successfully")
     except client.exceptions.ApiException as e:
-        print(f"Exception when creating ServiceMonitor: {e}")
-        print(f"Full error details: {e.body}")
+        logger.error(f"Exception when creating ServiceMonitor: {e}")
 
 
 def test_create_service_monitor():

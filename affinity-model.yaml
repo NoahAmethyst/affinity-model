@@ -23,11 +23,13 @@ spec:
       labels:
         app: affinity-model
     spec:
+      nodeSelector:
+        app: octo  # 指定节点名称
       terminationGracePeriodSeconds: 10
       containers:
         - image: registry.cn-hangzhou.aliyuncs.com/lexmargin/affinity-model:latest
           name: affinity-model
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9554
               protocol: TCP
@@ -46,6 +48,14 @@ spec:
               value: "12345"
             - name: LISTENING
               value: "0"
+          volumeMounts:
+            - name: kube-config
+              mountPath: /app/kube_config.yaml
+      volumes:
+        - name: kube-config
+          hostPath:
+            path: /root/config/kube_config.yaml
+            type: FileOrCreate
 
 ---
 apiVersion: v1

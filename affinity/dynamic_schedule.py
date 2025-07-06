@@ -143,7 +143,7 @@ def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, i
 
     affinity_tool_service.sync_agents_graph(
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
-                                             pod2idx=pod2idx))
+                                             pods=pods_data))
 
     agents = read_excel_and_construct_agents(pods_data, plan)
     deploys = read_excel_and_generate_yamls(agents, comm_data)
