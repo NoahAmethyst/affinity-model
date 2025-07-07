@@ -70,6 +70,8 @@ def exec_schedule(exp_id: int, contents):
     # 静态调度过滤掉动态调度中交互关系变化数据,只过滤新增，不过滤删除
     for _comm in _comm_data:
         if _comm.change_type:
+            logger.info(
+                f'src agent {_comm.src_pod} dst agent{_comm.tgt_pod} has change type:{_comm.change_type},add to dynamic schedule')
             if _task_comm.get(_comm.delay) is None:
                 _task_comm.__setitem__(_comm.delay, [])
             _task_comm[_comm.delay].append(_comm)
@@ -99,7 +101,7 @@ def enter_dynamic_task(_delay, _nodes_resources_excel, _pod2idx, _task_comm, _ta
     if STOPED_EXP.get(exp_id):
         logger.warning(f'terminated exp:{exp_id},stopping operate schedule')
         return
-    logger.info(f'start dynamic schedule')
+    logger.info(f'start dynamic schedule,pod size:{_task_pods.__len__()}')
     # 智能体列表增加变化智能体（不能删除，亲和性评分会乱）
     for _pod in _task_pods.get(_delay):
         if _pod.change_type == '+':
