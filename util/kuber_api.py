@@ -187,7 +187,7 @@ def create_service_monitor(namespace: str):
         "apiVersion": "monitoring.coreos.com/v1",
         "kind": "ServiceMonitor",
         "metadata": {
-            "name": "agent-service-monitor",  # 注意名称不要有下划线
+            "name": "agent-monitor",  # 注意名称不要有下划线
             "labels": {
                 "release": "monitor"
             }
