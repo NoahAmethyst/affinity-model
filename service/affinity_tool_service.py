@@ -58,7 +58,7 @@ def build_exp_data(exp_id: int, plans: list[SingleSchedulerPlan], comm_data: lis
         node_agents_info=agents_node_info,
         interaction_detail=interaction_details,
         affinity_values=agents_affinity,
-        gather_at=now_millis(),
+        gather_at=now_millis()//1000,
     )
 
 

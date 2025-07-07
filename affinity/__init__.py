@@ -78,10 +78,11 @@ def exec_schedule(exp_id: int, contents):
         if _comm.change_type == '-':
             comm_data.append(_comm)
 
-
     static_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
 
     logger.info(f'finish static schedule')
+
+    logger.info(f'task comm size:{_task_comm.__len__()}')
 
     for _delay in _task_comm.keys():
         # delay 为延迟一分钟数据
