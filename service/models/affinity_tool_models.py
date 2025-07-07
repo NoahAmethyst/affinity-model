@@ -93,8 +93,8 @@ class AffinityValue:
                         AffinityValue(
                             # source_agent=pod2idx_reverse[i],  # 使用反向映射
                             # target_agent=pod2idx_reverse[j],
-                            source_agent=pods[i],  # 使用反向映射
-                            target_agent=pods[j],
+                            source_agent=pods[i].name,  # 使用反向映射
+                            target_agent=pods[j].name,
                             affinity_value=value_str
                         )
                     )
