@@ -188,7 +188,6 @@ def create_service_monitor(namespace: str):
         "kind": "ServiceMonitor",
         "metadata": {
             "name": "agent-service-monitor",  # 注意名称不要有下划线
-            "namespace": namespace,  # 添加这一行
             "labels": {
                 "release": "monitor"
             }
@@ -208,7 +207,7 @@ def create_service_monitor(namespace: str):
                 }
             ],
             "namespaceSelector": {
-                "matchNames": [namespace]
+                "any": "true"
             }
         }
     }

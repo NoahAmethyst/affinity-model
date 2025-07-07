@@ -4,6 +4,7 @@ from affinity.calculate import Graph, load_pods, load_nodes, load_comm
 from affinity.models import Communication, BasePod
 from affinity.multi_stage_scheduler import MultiStageScheduler
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
+from affinity.worst_scheduler import WorstFitScheduler
 from service.models.affinity_tool_models import NodeAgentsInfo, InteractionDetail, AffinityValue
 from util.kuber_api import init_nodes_with_label
 
@@ -52,6 +53,33 @@ def test_generate_plan():
     for _plan in plan:
         print(f'{_plan.__dict__}')
 
+
+
+def test_generate_worst_plan():
+    _comm_excel = pd.read_excel(io='/Users/amethyst/PycharmProjects/affinity-model/data/亲和性试验配置.xlsx',
+                                sheet_name='communication')
+    _nodes_excel = pd.read_excel('/Users/amethyst/PycharmProjects/affinity-model/data/亲和性试验配置.xlsx',
+                                 sheet_name='nodes')
+    _pods_excel = pd.read_excel('/Users/amethyst/PycharmProjects/affinity-model/data/亲和性试验配置.xlsx',
+                                sheet_name='pods')
+
+    pods_data, pods2idx = load_pods(_pods_excel)
+    nodes_data = load_nodes(_nodes_excel)
+    comm_data = load_comm(_comm_excel)
+
+    g = Graph(pods_data=pods_data, pod2idx=pods2idx, comm_data=comm_data, nodes_data=nodes_data)
+    pod_affinity, node_affinity = g.cal_affinity()
+
+    scheduler = WorstFitScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
+                                    node_affinity=node_affinity)
+    ### schedule
+    _plan = scheduler.schedule()
+
+    ### check
+    plan = scheduler.check_and_gen(scheduler, _plan)
+
+    for _plan in plan:
+        print(f'{_plan.__dict__}')
 
 def test_parse_static_plan():
     _comm_excel = pd.read_excel(io='/Users/amethyst/PycharmProjects/affinity-model/data/亲和性试验配置.xlsx',

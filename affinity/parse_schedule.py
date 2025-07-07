@@ -143,6 +143,14 @@ spec:
           ports:
           - containerPort: 11111
           - containerPort: 11112
+          volumeMounts:
+          - name: data-42
+            mountPath: /data-42/
+      volumes:
+        - name: data-42
+          hostPath:
+            path: /data-42/
+            type: DirectoryOrCreate  
 ---
 apiVersion: v1
 kind: Service
