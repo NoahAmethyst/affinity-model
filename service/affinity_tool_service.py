@@ -75,7 +75,7 @@ def sync_agents_graph(exp_data: ExperimentData):
         affinity_cli.request(method="POST", url="/api/affinity_tools/sim_exp/node/agents/graph/create", body=json_data,
                              headers=headers)
         res = affinity_cli.getresponse()
-        res.read()
-        logger.info(f'sync agents graph data,get response:{res.status}')
+        response_body = res.read().decode('utf-8')
+        logger.info(f'sync agents graph data,get response:{response_body}')
     except Exception as e:
         logging.error(f'report event to server{_host}:{_port} failed:{e}')
