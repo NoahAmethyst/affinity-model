@@ -181,13 +181,30 @@ def delete_all_deployments_in_namespace(namespace):
         logger.error(f"delete all deployments from namespace {namespace} failed: {e}")
 
 
-def create_service_monitor(namespace: str):
+def delete_all_services(namespace):
+    # 获取指定命名空间的所有 Service
+    services = core_v1.list_namespaced_service(namespace).items
+
+    # 逐个删除 Service
+    for svc in services:
+        try:
+            core_v1.delete_namespaced_service(
+                name=svc.metadata.name,
+                namespace=namespace,
+                body=client.V1DeleteOptions()  # 默认删除策略
+            )
+            logger.info(f"Deleted Service: {svc.metadata.name}")
+        except Exception as e:
+            logger.error(f"Failed to delete {svc.metadata.name}: {e}")
+
+
+def create_service_monitor(namespace: str, exp_id: int):
     # 修正后的 ServiceMonitor 定义
     service_monitor = {
         "apiVersion": "monitoring.coreos.com/v1",
         "kind": "ServiceMonitor",
         "metadata": {
-            "name": "agent-monitor",  # 注意名称不要有下划线
+            "name": f"agent-service-monitor-{exp_id}",  # 注意名称不要有下划线
             "labels": {
                 "release": "monitor"
             }
@@ -207,7 +224,7 @@ def create_service_monitor(namespace: str):
                 }
             ],
             "namespaceSelector": {
-                "any": "true"
+                "matchNames": [namespace]
             }
         }
     }
@@ -216,7 +233,7 @@ def create_service_monitor(namespace: str):
         custom_api.create_namespaced_custom_object(
             group="monitoring.coreos.com",
             version="v1",
-            namespace=namespace,
+            namespace="monitoring",
             plural="servicemonitors",  # 注意复数形式可能是 servicemonitors 而不是 service-monitors
             body=service_monitor
         )

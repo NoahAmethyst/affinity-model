@@ -85,6 +85,7 @@ class WorstFitScheduler(Scheduler):
 
 def worst_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
                     comm_data: list[Communication]):
+    logger.info(f'start base schedule {exp_id}')
     g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
     # 上报静态调度开始事件
     affinity_tool_service.report_event(exp_id=exp_id,

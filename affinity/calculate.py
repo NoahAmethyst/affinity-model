@@ -43,6 +43,8 @@ class Graph:
                     _src = _pod
                 if comm.tgt_pod == _pod.name:
                     _tgt = _pod
+            if _src is None or _tgt is None:
+                continue
             self.pod_graph.add_edge(_src, _tgt,
                                     data=comm, kind="comm")
             self.pod_graph.add_edge(_src, _tgt,

@@ -1,3 +1,4 @@
+import time
 from io import BytesIO
 
 import numpy as np
@@ -114,9 +115,10 @@ def dynamic_plan(node_resource: list[Node], pods: list[BasePod], last_pods_affin
 def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
                      comm_data: list[Communication],
                      new_pods: list[BasePod], node_resource: list[Node]):
+    time.sleep(1)
     affinity_tool_service.report_event(exp_id=exp_id,
                                        _type=affinity_tool_models.EventType.AGENT_COMMUNICATION_RELATION_CHANGE)
-
+    time.sleep(1)
     g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
     # 上报动态亲和性评分
     affinity_tool_service.report_event(exp_id=exp_id,
@@ -130,6 +132,7 @@ def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, i
                                        _type=affinity_tool_models.EventType.DYNAMIC_AFFINITY_SCORING_COMPLETE,
                                        duration=_end - _start)
 
+    time.sleep(1)
     # 上报生成动态亲和性策略
     affinity_tool_service.report_event(exp_id=exp_id,
                                        _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_GENERATION_START)
@@ -141,6 +144,7 @@ def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, i
                                        _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_COMPLETE,
                                        duration=_end - _start)
 
+    time.sleep(1)
     affinity_tool_service.sync_agents_graph(
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
                                              pods=pods_data))

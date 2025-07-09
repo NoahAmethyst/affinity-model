@@ -57,7 +57,7 @@ class MultiStageScheduler(Scheduler):
 
         clusters, cluster_sum, affinity = self.gpu_cluster(gpu_node_num=_gpu_node_num,
                                                            max_gpu_pod_per_node=_max_gpu_pod_per_node,
-                                                           max_normal_pod_per_node=50, node_limit=_limit_node)
+                                                           max_normal_pod_per_node=60, node_limit=_limit_node)
 
         ### 映射到Node
         clusters = self.first_fit_mapper(clusters)
@@ -74,7 +74,7 @@ class MultiStageScheduler(Scheduler):
         ### 超参数
 
         # 簇最大资源限制
-        node_limit = BaseNode("", 45, 240 * 1024, 0 * 1024, 1572864, 10000)
+        node_limit = BaseNode("", 80, 240 * 1024, 0 * 1024, 1572864, 10000)
 
         ### 先根据gpu进行聚类
         gpu_affinity = np.copy(self.pod_affinity)
@@ -137,6 +137,8 @@ class MultiStageScheduler(Scheduler):
         gpu_idx = 0
         for node in self.nodes:
             if node.gpu == 0:
+                if normal_idx >= len(normal_clusters):
+                    normal_idx = 0
                 clusters.append(normal_clusters[normal_idx])
                 normal_idx += 1
             else:
@@ -368,6 +370,7 @@ class MultiStageScheduler(Scheduler):
 def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
                     comm_data: list[Communication]):
     g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
+    logger.info(f'start multistage schedule {exp_id}')
     # 上报静态调度开始事件
     affinity_tool_service.report_event(exp_id=exp_id,
                                        message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',

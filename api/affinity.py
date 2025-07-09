@@ -13,8 +13,26 @@ affinity_model = APIRouter(
 )
 
 
-@affinity_model.post("/start_schedule/{exp_id}", response_model=BaseResponse,
+@affinity_model.post("/start_schedule/{exp_id}/{is_base}", response_model=BaseResponse,
                      summary="开启调度任务",
+                     tags=['亲和性模型'])
+async def start_schedule(exp_id: int, is_base:int,file: UploadFile = File(...),
+                         background_tasks: BackgroundTasks = BackgroundTasks()):
+    # 检查文件类型
+    if not file.filename.endswith('.xlsx'):
+        raise HTTPException(
+            status_code=400,
+            detail="仅支持 .xlsx 文件格式"
+        )
+    affinity_tool_service.report_event(exp_id=exp_id, _type=affinity_tool_models.EventType.EXPERIMENT_START)
+    contents = file.file.read()
+    background_tasks.add_task(exec_schedule, exp_id=exp_id, contents=contents, base=(is_base==1))
+
+    return BaseResponse._ok(message='接受到亲和性调度配置文件，开始处理')
+
+
+@affinity_model.post("/start_schedule_base/{exp_id}", response_model=BaseResponse,
+                     summary="开启基准调度任务",
                      tags=['亲和性模型'])
 async def start_schedule(exp_id: int, file: UploadFile = File(...),
                          background_tasks: BackgroundTasks = BackgroundTasks()):
@@ -26,7 +44,7 @@ async def start_schedule(exp_id: int, file: UploadFile = File(...),
         )
     affinity_tool_service.report_event(exp_id=exp_id, _type=affinity_tool_models.EventType.EXPERIMENT_START)
     contents = file.file.read()
-    background_tasks.add_task(exec_schedule, exp_id=exp_id, contents=contents)
+    background_tasks.add_task(exec_schedule, exp_id=exp_id, contents=contents, base=True)
 
     return BaseResponse._ok(message='接受到亲和性调度配置文件，开始处理')
 

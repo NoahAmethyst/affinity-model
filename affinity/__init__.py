@@ -10,6 +10,9 @@ from affinity.models import SingleSchedulerPlan, BasePod, Communication
 from affinity.multi_stage_scheduler import MultiStageScheduler, static_schedule
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
 from affinity.schedule_operator import STOPED_EXP
+from affinity.worst_scheduler import worst_schedule
+from service.affinity_tool_service import report_event
+from service.models import affinity_tool_models
 from util.kuber_api import init_nodes_with_label
 from util.logger import logger
 import sched
@@ -18,7 +21,7 @@ import time
 scheduler = sched.scheduler(time.time, time.sleep)
 
 
-def exec_schedule(exp_id: int, contents):
+def exec_schedule(exp_id: int, contents, base: bool = False):
     logger.info(f'start static schedule，exp_id:{exp_id}')
 
     file_obj = BytesIO(contents)
@@ -80,9 +83,16 @@ def exec_schedule(exp_id: int, contents):
         if _comm.change_type == '-':
             comm_data.append(_comm)
 
-    static_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
+    if not base:
+        static_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
+        logger.info(f'finish multistage static schedule')
+    else:
+        worst_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
+        logger.info(f'finish base static schedule')
 
-    logger.info(f'finish static schedule')
+    time.sleep(1)
+
+    report_event(exp_id=exp_id, _type=affinity_tool_models.EventType.SIMULATION_SOLUTION_TIME_COLLECTION_START)
 
     logger.info(f'task comm size:{_task_comm.__len__()}')
 

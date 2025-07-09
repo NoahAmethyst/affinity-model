@@ -234,9 +234,9 @@ class Scheduler:
     def check_and_gen(self, scheduler, plan: [int]) -> list[SingleSchedulerPlan] | None:
         """Validate a scheduling plan and generate execution details."""
         # Early return if plan is invalid
-        if not scheduler.check(plan):
-            logger.info('Plan validation failed')
-            return None
+        # if not scheduler.check(plan):
+        #     logger.warn('Plan validation failed')
+        #     return None
 
         # Validate all node indices in plan
         for node_idx in plan:

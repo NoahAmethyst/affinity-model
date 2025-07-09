@@ -3,7 +3,7 @@ import os
 import yaml
 
 from util.kuber_api import deploy_from_yaml_str, create_namespace, delete_all_deployments_in_namespace, \
-    create_service_monitor
+    create_service_monitor, delete_all_services
 from util.logger import logger
 
 EXP_NAMESPACE = 'affinity-exp'
@@ -20,7 +20,7 @@ def operate_schedule(exp_id: int, deploys: list[str]):
 
     # deploy service-monitor
     if not MONITORING_EXP.get(exp_id):
-        create_service_monitor(_namespace_)
+        # create_service_monitor(_namespace_,exp_id)
         MONITORING_EXP.__setitem__(exp_id, True)
     logger.info(f'Creating service for {_namespace}')
     for _deploy in deploys:
@@ -33,6 +33,5 @@ def terminate_schedule(exp_id: int):
     _namespace = f'{EXP_NAMESPACE}-{exp_id}'
 
     delete_all_deployments_in_namespace(_namespace)
+    delete_all_services(_namespace)
     STOPED_EXP.__setitem__(exp_id, True)
-
-
