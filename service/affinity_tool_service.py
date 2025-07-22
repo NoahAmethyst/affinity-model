@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from socket import socket
 from typing import Optional
 
 import numpy as np
@@ -22,29 +23,54 @@ CURR_EXP_ID = 0
 
 
 def report_event(exp_id: int, _type: EventType, message: Optional[str] = None,
-                 duration: Optional[int] = None):
-    CURR_EXP_ID = exp_id
-    s = int(os.getenv(REPORT_EVENT))
-    if int(os.getenv(REPORT_EVENT)) == 0:
+                 duration: Optional[int] = None, retries: int = 2):
+    if int(os.getenv(REPORT_EVENT, 0)) == 0:
         return
-    try:
-        payload = json.dumps({
-            "exp_id": exp_id,
-            "type": _type,
-            "message": message,
-            "trigger_at": now_millis() // 1000,
-            "duration": duration
-        })
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        logger.info(f'report event:{EventType.get_description(_type.value)} to server {_host}:{_port}')
-        affinity_cli.request("POST", "/api/affinity_tools/exp/loggers/create", payload, headers)
-        res = affinity_cli.getresponse()
-        res.read()
-        logger.info(f'report event,get response:{res.status}')
-    except Exception as e:
-        logging.error(f'report event to server{_host}:{_port} failed:{e}')
+
+    payload = json.dumps({
+        "exp_id": exp_id,
+        "type": _type,
+        "message": message,
+        "trigger_at": now_millis() // 1000,
+        "duration": duration
+    })
+    headers = {'Content-Type': 'application/json'}
+
+    for attempt in range(retries + 1):
+        try:
+            logger.info(f'Reporting event {EventType.get_description(_type.value)} to {_host}:{_port}')
+
+            # Ensure connection is fresh for each attempt
+            affinity_cli.connect() if hasattr(affinity_cli, 'connect') else None
+
+            affinity_cli.request("POST", "/api/affinity_tools/exp/loggers/create",
+                                 body=payload, headers=headers)
+
+            response = affinity_cli.getresponse()
+            response_body = response.read()
+
+            if 200 <= response.status < 300:
+                logger.info(f'Successfully reported event. Status: {response.status}')
+                return
+            else:
+                logger.warning(f'Server returned non-success status: {response.status}. Body: {response_body}')
+
+        except ConnectionError as e:
+            logger.warning(f'Connection error (attempt {attempt + 1}/{retries + 1}): {str(e)}')
+            if attempt == retries:
+                logger.error(f'Final attempt failed to report event to {_host}:{_port}')
+                raise
+            time.sleep(1 * (attempt + 1))  # Simple backoff
+
+        except (TimeoutError, socket.timeout) as e:
+            logger.warning(f'Timeout occurred (attempt {attempt + 1}/{retries + 1}): {str(e)}')
+            if attempt == retries:
+                logger.error(f'Final attempt timed out reporting to {_host}:{_port}')
+                raise
+
+        except Exception as e:
+            logger.error(f'Unexpected error reporting event: {str(e)}', exc_info=True)
+            raise
 
 
 def build_exp_data(exp_id: int, plans: list[SingleSchedulerPlan], comm_data: list[Communication],
