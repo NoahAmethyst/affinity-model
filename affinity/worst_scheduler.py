@@ -9,6 +9,7 @@ from affinity.models import BaseNode, Communication
 from affinity.offline_scheduler import Scheduler
 from affinity.schedule_operator import operate_schedule
 from service import affinity_tool_service
+from service.affinity_tool_service import report_plan
 from service.models import affinity_tool_models
 from util.logger import logger
 from util.time_util import now_millis
@@ -84,46 +85,9 @@ class WorstFitScheduler(Scheduler):
 
 
 def worst_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
-                    comm_data: list[Communication]):
-    logger.info(f'start base schedule {exp_id}')
-    g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
-    # 上报静态调度开始事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',
-                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_START)
-
-    # 上报开始静态亲和性评分事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_START)
-
-    _start = now_millis()
-    pod_affinity, node_affinity = g.cal_affinity()
-    _end = now_millis()
-    # 上报完成静态亲和性评分事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_COMPLETE,
-                                       duration=_end - _start)
-
-    scheduler = WorstFitScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
-                                  node_affinity=node_affinity)
-
-
-    # 上报开始生成静态亲和性调度策略
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_GENERATION_START,
-                                       duration=_end - _start)
-    ### schedule
-    _start = now_millis()
-    _plan = scheduler.schedule()
-    ### check
-    ### schedule
-    _plan = scheduler.schedule()
-
-    ### check
-    plan = scheduler.check_and_gen(scheduler, _plan)
-    _end = now_millis()
-    # 上报完成静态亲和性调度策略的生成
-
+                   comm_data: list[Communication]):
+    _end, _start, plan, pod_affinity = worst_plan(comm_data, exp_id, nodes_data, pod2idx, pods_data)
+    report_plan(exp_plan=plan, exp_id=exp_id, exp_type='基准调度')
     # 同步亲和性调度详情数据
     affinity_tool_service.sync_agents_graph(
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
@@ -144,3 +108,39 @@ def worst_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int
 
     # 记录上一轮调度计划
     set_last_plan(plan)
+
+
+def worst_plan(comm_data, exp_id, nodes_data, pod2idx, pods_data):
+    logger.info(f'start base schedule {exp_id}')
+    g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
+    # 上报静态调度开始事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_START)
+    # 上报开始静态亲和性评分事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_START)
+    _start = now_millis()
+    pod_affinity, node_affinity = g.cal_affinity()
+    _end = now_millis()
+    # 上报完成静态亲和性评分事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_COMPLETE,
+                                       duration=_end - _start)
+    scheduler = WorstFitScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
+                                  node_affinity=node_affinity)
+    # 上报开始生成静态亲和性调度策略
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_GENERATION_START,
+                                       duration=_end - _start)
+    ### schedule
+    _start = now_millis()
+    _plan = scheduler.schedule()
+    ### check
+    ### schedule
+    _plan = scheduler.schedule()
+    ### check
+    plan = scheduler.check_and_gen(scheduler, _plan)
+    _end = now_millis()
+    # 上报完成静态亲和性调度策略的生成
+    return _end, _start, plan, pod_affinity

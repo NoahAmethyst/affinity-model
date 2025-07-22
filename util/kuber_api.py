@@ -15,6 +15,7 @@ apps_v1 = client.AppsV1Api()
 custom_api = client.CustomObjectsApi()
 
 nodes_with_label: dict[str, str] = {}
+label_with_nodes: dict[str, str] = {}
 
 
 def init_nodes_with_label(label_value: str):
@@ -23,6 +24,7 @@ def init_nodes_with_label(label_value: str):
         node_names = fetch_node_with_label(label, label_value)
         for node_name in node_names:
             nodes_with_label.__setitem__(label_value, node_name)
+            label_with_nodes.__setitem__(node_name, label_value)
         logger.info(f'init nodes name :{nodes_with_label}')
 
 

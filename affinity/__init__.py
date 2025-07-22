@@ -1,24 +1,24 @@
+import sched
+import time
 from io import BytesIO
-from typing import Optional
-
 import pandas as pd
-from fastapi import BackgroundTasks
-
 from affinity.calculate import Graph, load_pods, load_nodes, load_comm
 from affinity.dynamic_schedule import dynamic_schedule, load_node_resource
-from affinity.models import SingleSchedulerPlan, BasePod, Communication
-from affinity.multi_stage_scheduler import MultiStageScheduler, static_schedule
+from affinity.models import SingleSchedulerPlan, BasePod, Communication, BaseNode
+from affinity.multi_stage_scheduler import MultiStageScheduler, static_schedule, dynamic_schedule_
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
 from affinity.schedule_operator import STOPED_EXP
 from affinity.worst_scheduler import worst_schedule
 from service.affinity_tool_service import report_event
 from service.models import affinity_tool_models
-from util.kuber_api import init_nodes_with_label
+from util.kuber_api import init_nodes_with_label, label_with_nodes
 from util.logger import logger
-import sched
-import time
 
 scheduler = sched.scheduler(time.time, time.sleep)
+
+exp_pods: dict[int, list[BasePod]] = {}
+exp_comm: dict[int, list[Communication]] = {}
+exp_nodes: dict[int, list[BaseNode]] = {}
 
 
 def exec_schedule(exp_id: int, contents, base: bool = False):
@@ -83,12 +83,19 @@ def exec_schedule(exp_id: int, contents, base: bool = False):
         if _comm.change_type == '-':
             comm_data.append(_comm)
 
+    exp_pods.setdefault(exp_id, pods_data)
+    exp_comm.setdefault(exp_id, comm_data)
+    exp_nodes.setdefault(exp_id, nodes_data)
+
     if not base:
-        static_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
+        static_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data,
+                        static=True)
         logger.info(f'finish multistage static schedule')
     else:
         worst_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data)
         logger.info(f'finish base static schedule')
+
+    _task_comm.__setitem__(exp_id, comm_data)
 
     time.sleep(1)
 
@@ -106,8 +113,60 @@ def exec_schedule(exp_id: int, contents, base: bool = False):
     logger.info(f'finish affinity schedule,exp_id:{exp_id}')
 
 
+def schedule_plan(exp_id: int, new_pods: list[str], nodes: list[str], is_base: bool):
+    _comm_data = exp_comm.get(exp_id)
+    comm_data: list[Communication] = []
+    _pods = exp_pods.get(exp_id)
+    pods_data: list[BasePod] = []
+    for _pod_name in new_pods:
+        for _comm in _comm_data:
+            if _comm.tgt_pod == _pod_name or _comm.src_pod == _pod_name:
+                comm_data.append(_comm)
+        for _pod in _pods:
+            if _pod_name == _pod.name:
+                pods_data.append(_pod)
+
+    pod2idx: dict[str, int] = {}
+    _nodes = exp_nodes.get(exp_id)
+    nodes_data: list[BaseNode] = []
+    for _node in _nodes:
+        for _node_name in nodes:
+            if label_with_nodes.get(_node_name) == _node.name:
+                nodes_data.append(_node)
+
+    static_schedule(exp_id=exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=comm_data,
+                    static=False)
+
+
 def enter_dynamic_task(_delay, _nodes_resources_excel, _pod2idx, _task_comm, _task_pods, comm_data, exp_id, nodes_data,
                        pod2idx, pods_data):
+    if STOPED_EXP.get(exp_id):
+        logger.warning(f'terminated exp:{exp_id},stopping operate schedule')
+        return
+    logger.info(f'start dynamic schedule,pod size:{_task_pods.__len__()}')
+    # 智能体列表增加变化智能体（不能删除，亲和性评分会乱）
+    for _pod in _task_pods.get(_delay):
+        if _pod.change_type == '+':
+            pods_data.append(_pod)
+            pod2idx.__setitem__(_pod.name, _pod2idx.get(_pod.name))
+    # 拷贝静态通信关系
+    _this_comm = comm_data
+    for _comm in _task_comm.get(_delay):
+        # 增加新增的通信关系
+        if _comm.change_type == '+':
+            _this_comm.append(_comm)
+        # 删除取消的通信关系
+        if _comm.change_type == '-':
+            _this_comm.remove(_comm)
+    _node_resource = load_node_resource(_nodes_resources_excel)
+    dynamic_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=_this_comm,
+                     new_pods=_task_pods.get(_delay),
+                     node_resource=_node_resource)
+    logger.info(f'finish dynamic schedule')
+
+
+def dynamic_schedule(_delay, _nodes_resources_excel, _pod2idx, _task_comm, _task_pods, comm_data, exp_id, nodes_data,
+                     pod2idx, pods_data):
     if STOPED_EXP.get(exp_id):
         logger.warning(f'terminated exp:{exp_id},stopping operate schedule')
         return

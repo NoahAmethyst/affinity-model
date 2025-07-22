@@ -10,6 +10,7 @@ from affinity.models import SingleSchedulerPlan, Communication
 from service.models.affinity_tool_models import EventType, ExperimentData, NodeAgentsInfo, InteractionDetail, \
     AffinityValue
 from util.constant import AFFINITY_SERVER, AFFINITY_PORT, REPORT_EVENT
+from util.kuber_api import label_with_nodes
 from util.logger import logger
 from util.time_util import now_millis
 
@@ -58,7 +59,7 @@ def build_exp_data(exp_id: int, plans: list[SingleSchedulerPlan], comm_data: lis
         node_agents_info=agents_node_info,
         interaction_detail=interaction_details,
         affinity_values=agents_affinity,
-        gather_at=now_millis()//1000,
+        gather_at=now_millis() // 1000,
     )
 
 
@@ -77,5 +78,33 @@ def sync_agents_graph(exp_data: ExperimentData):
         res = affinity_cli.getresponse()
         response_body = res.read().decode('utf-8')
         logger.info(f'sync agents graph data,get response:{response_body}')
+    except Exception as e:
+        logging.error(f'report event to server{_host}:{_port} failed:{e}')
+
+
+def report_plan(exp_id: int, exp_type: str, exp_plan: list[SingleSchedulerPlan]):
+    logger.info('report plan')
+    try:
+        payload = {
+            "exp_id": exp_id,
+            "exp_type": exp_type,
+            "data": [
+                {
+                    "agent": plan.pod,
+                    "node": label_with_nodes.get(plan.scheduled_node)
+                }
+                for plan in exp_plan
+            ]
+        }
+
+        # 转换为 JSON 字符串
+        payload_json = json.dumps(payload)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        affinity_cli.request("POST", "/api/affinity_tools/sim_exp/deploy_scheme/create", payload_json, headers)
+        res = affinity_cli.getresponse()
+        data = res.read()
+        logger.info(f'report plan,get response:{data}')
     except Exception as e:
         logging.error(f'report event to server{_host}:{_port} failed:{e}')

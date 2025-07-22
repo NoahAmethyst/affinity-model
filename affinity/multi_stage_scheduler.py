@@ -1,30 +1,25 @@
 """ 多阶段调度 """
 import copy
 import os
-from io import BytesIO
 from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import scipy.cluster.hierarchy as sch
-import yaml
 from numpy import ndarray
 from scipy.optimize._lsap import linear_sum_assignment
 
+import service.affinity_tool_service as affinity_tool_service
+import service.models.affinity_tool_models as affinity_tool_models
 from affinity.calculate import Graph
 from affinity.dynamic_schedule import set_last_plan
 from affinity.models import BaseNode, BasePod, BaseObject, Communication
 from affinity.offline_scheduler import Scheduler
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
-import service.affinity_tool_service as affinity_tool_service
-import service.models.affinity_tool_models as affinity_tool_models
 from affinity.schedule_operator import operate_schedule
-
-from util.kuber_api import deploy_from_yaml_str
+from service.affinity_tool_service import report_plan
 from util.logger import logger
-
 from util.time_util import now_millis
 
 
@@ -368,41 +363,13 @@ class MultiStageScheduler(Scheduler):
 
 
 def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, int], nodes_data: list[BaseNode],
-                    comm_data: list[Communication]):
-    g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
-    logger.info(f'start multistage schedule {exp_id}')
-    # 上报静态调度开始事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       message=f'本次静态调度涉及智能体{len(g.pods)}个,配置{len(g.nodes)}个调度节点',
-                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_START)
+                    comm_data: list[Communication], static: bool):
+    _end, _start, plan, pod_affinity = dynamic_schedule_(comm_data, exp_id, nodes_data, pod2idx, pods_data)
 
-    # 上报开始静态亲和性评分事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_START)
-
-    _start = now_millis()
-    pod_affinity, node_affinity = g.cal_affinity()
-    _end = now_millis()
-    # 上报完成静态亲和性评分事件
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_AFFINITY_SCORING_COMPLETE,
-                                       duration=_end - _start)
-
-    scheduler = MultiStageScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
-                                    node_affinity=node_affinity)
-
-    # 上报开始生成静态亲和性调度策略
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_GENERATION_START,
-                                       duration=_end - _start)
-    ### schedule
-    _start = now_millis()
-    _plan = scheduler.schedule(enable_draw=False)
-    ### check
-    plan = scheduler.check_and_gen(scheduler, _plan)
-    _end = now_millis()
-    # 上报完成静态亲和性调度策略的生成
-
+    if static:
+        report_plan(exp_plan=plan, exp_id=exp_id, exp_type='静态调度')
+    else:
+        report_plan(exp_plan=plan, exp_id=exp_id, exp_type='动态调度')
     # 同步亲和性调度详情数据
     affinity_tool_service.sync_agents_graph(
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
@@ -423,3 +390,35 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
 
     # 记录上一轮调度计划
     set_last_plan(plan)
+
+
+def dynamic_schedule_(comm_data, exp_id, nodes_data, pod2idx, pods_data):
+    g = Graph(pods_data=pods_data, pod2idx=pod2idx, comm_data=comm_data, nodes_data=nodes_data)
+    logger.info(f'start multistage schedule {exp_id}')
+    # 上报静态调度开始事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.AGENT_COMMUNICATION_RELATION_CHANGE)
+    # 上报开始静态亲和性评分事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_AFFINITY_SCORING_START)
+    _start = now_millis()
+    pod_affinity, node_affinity = g.cal_affinity()
+    _end = now_millis()
+    # 上报完成静态亲和性评分事件
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.DYNAMIC_AFFINITY_SCORING_COMPLETE,
+                                       duration=_end - _start)
+    scheduler = MultiStageScheduler(pods_data=pods_data, nodes_data=nodes_data, pod_affinity=pod_affinity,
+                                    node_affinity=node_affinity)
+    # 上报开始生成静态亲和性调度策略
+    affinity_tool_service.report_event(exp_id=exp_id,
+                                       _type=affinity_tool_models.EventType.STATIC_SCHEDULING_POLICY_GENERATION_START,
+                                       duration=_end - _start)
+    ### schedule
+    _start = now_millis()
+    _plan = scheduler.schedule(enable_draw=False)
+    ### check
+    plan = scheduler.check_and_gen(scheduler, _plan)
+    _end = now_millis()
+    # 上报完成静态亲和性调度策略的生成
+    return _end, _start, plan, pod_affinity

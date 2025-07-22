@@ -1,15 +1,11 @@
 # 静态调度框架
-import logging
-import math
 import os
 import random
 from random import shuffle
-from sched import scheduler
 from typing import Any
+import numpy as np
 import pandas as pd
 import yaml
-import numpy as np
-
 from affinity.models import BasePod, BaseNode, BaseObject, SingleSchedulerPlan
 from util.logger import init_logger, logger
 

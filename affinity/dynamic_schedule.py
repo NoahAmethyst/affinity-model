@@ -1,18 +1,11 @@
 import time
-from io import BytesIO
-
 import numpy as np
-import pandas as pd
-import yaml
-
-from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
-from affinity.calculate import Graph
-from affinity.models import Node, SingleSchedulerPlan, BasePod, BaseNode, Communication
 import service.affinity_tool_service as affinity_tool_service
 import service.models.affinity_tool_models as affinity_tool_models
+from affinity.calculate import Graph
+from affinity.models import Node, SingleSchedulerPlan, BasePod, BaseNode, Communication
+from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
 from affinity.schedule_operator import operate_schedule
-from util.kuber_api import deploy_from_yaml_str
-
 from util.time_util import now_millis
 
 last_plan: list[SingleSchedulerPlan] = []
@@ -140,6 +133,7 @@ def dynamic_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, i
     plan = dynamic_plan(node_resource, new_pods, pod_affinity)
     _end = now_millis()
     # 上报完成动态亲和性策略
+    # affinity_tool_service.report_plan(exp_plan=plan)
     affinity_tool_service.report_event(exp_id=exp_id,
                                        _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_COMPLETE,
                                        duration=_end - _start)

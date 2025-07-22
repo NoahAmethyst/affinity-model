@@ -1,12 +1,8 @@
 import os
 from typing import Dict
-
-import pandas as pd
-import argparse
-import logging
-
 from affinity.models import SingleSchedulerPlan, Communication, BasePod
 from util.constant import MOCK_AGENT_IMAGE
+from util.kuber_api import label_with_nodes
 from util.logger import logger
 
 
@@ -22,6 +18,9 @@ class Agent:
         self.package = 1
         self.amount = 1
         self.node = ""
+
+
+agents_yaml: dict[str, Agent] = {}
 
 
 def read_excel_and_construct_agents(pods_data: list[BasePod], plan: list[SingleSchedulerPlan]) -> Dict[str, Agent]:
@@ -107,9 +106,21 @@ def read_excel_and_generate_yamls(agents: Dict[str, Agent],
 def generate(agents: dict[str, Agent]) -> list[str]:
     deploy = []
     for agent in agents.values():
+        agents_yaml.setdefault(agent.name, agent)
         deploy.append(
             generate_yamls(agent.name.replace('_', '-'), agent.cpus, agent.memory, agent.frequency, agent.package,
                            agent.target.replace('_', '-'), agent.amount, agent.node))
+    return deploy
+
+
+def generate_single(node, pod):
+    agent = agents_yaml.get(pod)
+    if agent is not None:
+        agent.node = label_with_nodes.get(node)
+    else:
+        return None
+    deploy = generate_yamls(agent.name.replace('_', '-'), agent.cpus, agent.memory, agent.frequency, agent.package,
+                            agent.target.replace('_', '-'), agent.amount, agent.node)
     return deploy
 
 

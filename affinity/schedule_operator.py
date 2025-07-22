@@ -1,9 +1,7 @@
-import os
-
 import yaml
 
 from util.kuber_api import deploy_from_yaml_str, create_namespace, delete_all_deployments_in_namespace, \
-    create_service_monitor, delete_all_services
+    delete_all_services
 from util.logger import logger
 
 EXP_NAMESPACE = 'affinity-exp'
@@ -31,7 +29,6 @@ def operate_schedule(exp_id: int, deploys: list[str]):
 def terminate_schedule(exp_id: int):
     logger.info(f'terminating affinity exp:{exp_id}')
     _namespace = f'{EXP_NAMESPACE}-{exp_id}'
-
     delete_all_deployments_in_namespace(_namespace)
     delete_all_services(_namespace)
     STOPED_EXP.__setitem__(exp_id, True)
