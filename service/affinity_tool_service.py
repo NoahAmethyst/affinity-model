@@ -2,6 +2,7 @@ import http.client
 import json
 import logging
 import os
+import time
 from typing import Optional
 
 import numpy as np
@@ -10,13 +11,13 @@ from affinity.models import SingleSchedulerPlan, Communication
 from service.models.affinity_tool_models import EventType, ExperimentData, NodeAgentsInfo, InteractionDetail, \
     AffinityValue
 from util.constant import AFFINITY_SERVER, AFFINITY_PORT, REPORT_EVENT
-from util.kuber_api import label_with_nodes
+from util.kuber_api import label_with_nodes, nodes_with_label
 from util.logger import logger
 from util.time_util import now_millis
 
 _host = os.getenv(AFFINITY_SERVER)
 _port = os.getenv(AFFINITY_PORT)
-affinity_cli = http.client.HTTPConnection(_host, int(_port))
+affinity_cli = http.client.HTTPConnection(_host, int(_port), timeout=30)
 CURR_EXP_ID = 0
 
 
@@ -83,28 +84,29 @@ def sync_agents_graph(exp_data: ExperimentData):
 
 
 def report_plan(exp_id: int, exp_type: str, exp_plan: list[SingleSchedulerPlan]):
-    logger.info('report plan')
+    time.sleep(1)
+    logger.info(f'report plan，size:{len(exp_plan)}')
     try:
-        payload = {
+        # 转换为 JSON 字符串
+        payload_json = json.dumps({
             "exp_id": exp_id,
             "exp_type": exp_type,
             "data": [
                 {
                     "agent": plan.pod,
-                    "node": label_with_nodes.get(plan.scheduled_node)
+                    "node": nodes_with_label.get(plan.scheduled_node)
                 }
                 for plan in exp_plan
             ]
-        }
-
-        # 转换为 JSON 字符串
-        payload_json = json.dumps(payload)
+        })
         headers = {
             'Content-Type': 'application/json'
         }
-        affinity_cli.request("POST", "/api/affinity_tools/sim_exp/deploy_scheme/create", payload_json, headers)
+
+        affinity_cli.request("POST", "/api/affinity_tools/sim_exp/deploy_scheme/create", payload_json,
+                             headers)
         res = affinity_cli.getresponse()
         data = res.read()
         logger.info(f'report plan,get response:{data}')
     except Exception as e:
-        logging.error(f'report event to server{_host}:{_port} failed:{e}')
+        logging.error(f'report plan to server{_host}:{_port} failed:{e}')
