@@ -140,29 +140,30 @@ def schedule_plan(exp_id: int, new_pods: list[str], nodes: list[str], is_base: b
 
 def enter_dynamic_task(_delay, _nodes_resources_excel, _pod2idx, _task_comm, _task_pods, comm_data, exp_id, nodes_data,
                        pod2idx, pods_data):
-    if STOPED_EXP.get(exp_id):
-        logger.warning(f'terminated exp:{exp_id},stopping operate schedule')
-        return
-    logger.info(f'start dynamic schedule,pod size:{_task_pods.__len__()}')
-    # 智能体列表增加变化智能体（不能删除，亲和性评分会乱）
-    for _pod in _task_pods.get(_delay):
-        if _pod.change_type == '+':
-            pods_data.append(_pod)
-            pod2idx.__setitem__(_pod.name, _pod2idx.get(_pod.name))
-    # 拷贝静态通信关系
-    _this_comm = comm_data
-    for _comm in _task_comm.get(_delay):
-        # 增加新增的通信关系
-        if _comm.change_type == '+':
-            _this_comm.append(_comm)
-        # 删除取消的通信关系
-        if _comm.change_type == '-':
-            _this_comm.remove(_comm)
-    _node_resource = load_node_resource(_nodes_resources_excel)
-    dynamic_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=_this_comm,
-                     new_pods=_task_pods.get(_delay),
-                     node_resource=_node_resource)
-    logger.info(f'finish dynamic schedule')
+    pass
+    # if STOPED_EXP.get(exp_id):
+    #     logger.warning(f'terminated exp:{exp_id},stopping operate schedule')
+    #     return
+    # logger.info(f'start dynamic schedule,pod size:{_task_pods.__len__()}')
+    # # 智能体列表增加变化智能体（不能删除，亲和性评分会乱）
+    # for _pod in _task_pods.get(_delay):
+    #     if _pod.change_type == '+':
+    #         pods_data.append(_pod)
+    #         pod2idx.__setitem__(_pod.name, _pod2idx.get(_pod.name))
+    # # 拷贝静态通信关系
+    # _this_comm = comm_data
+    # for _comm in _task_comm.get(_delay):
+    #     # 增加新增的通信关系
+    #     if _comm.change_type == '+':
+    #         _this_comm.append(_comm)
+    #     # 删除取消的通信关系
+    #     if _comm.change_type == '-':
+    #         _this_comm.remove(_comm)
+    # _node_resource = load_node_resource(_nodes_resources_excel)
+    # dynamic_schedule(exp_id, pods_data=pods_data, pod2idx=pod2idx, nodes_data=nodes_data, comm_data=_this_comm,
+    #                  new_pods=_task_pods.get(_delay),
+    #                  node_resource=_node_resource)
+    # logger.info(f'finish dynamic schedule')
 
 
 def dynamic_schedule(_delay, _nodes_resources_excel, _pod2idx, _task_comm, _task_pods, comm_data, exp_id, nodes_data,
