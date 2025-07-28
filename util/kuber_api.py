@@ -65,7 +65,7 @@ def deploy_from_yaml_str(yaml_docs, namespace: Optional[str]):
                             body=doc
                         )
                         # logger.info(f"Deployment {resource_name} updated,got response {resp}")
-                        logger.info(f"Deployment {resource_name} created")
+                        logger.info(f"Deployment {resource_name} updated")
                     else:
                         raise
 

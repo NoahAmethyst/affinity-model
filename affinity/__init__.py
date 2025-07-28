@@ -5,7 +5,7 @@ import pandas as pd
 from affinity.calculate import Graph, load_pods, load_nodes, load_comm
 from affinity.dynamic_schedule import dynamic_schedule, load_node_resource
 from affinity.models import SingleSchedulerPlan, BasePod, Communication, BaseNode
-from affinity.multi_stage_scheduler import MultiStageScheduler, static_schedule, dynamic_schedule_
+from affinity.multi_stage_scheduler import MultiStageScheduler, static_schedule
 from affinity.parse_schedule import read_excel_and_construct_agents, read_excel_and_generate_yamls
 from affinity.schedule_operator import STOPED_EXP
 from affinity.worst_scheduler import worst_schedule

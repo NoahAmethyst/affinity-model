@@ -405,7 +405,7 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
     else:
         affinity_tool_service.report_event(exp_id=exp_id,
                                            _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_GENERATION_START,
-                                           duration=_end - _start)
+                                           )
 
     ### schedule
     _start = now_millis()
@@ -424,9 +424,14 @@ def static_schedule(exp_id: int, pods_data: list[BasePod], pod2idx: dict[str, in
         affinity_tool_service.build_exp_data(exp_id=exp_id, plans=plan, comm_data=comm_data, pod_affinity=pod_affinity,
                                              pods=pods_data))
 
-    affinity_tool_service.report_event(exp_id=exp_id,
-                                       _type=affinity_tool_models.EventType.SCHEDULING_POLICY_GENERATION_COMPLETE,
-                                       duration=_end - _start)
+    if static:
+        affinity_tool_service.report_event(exp_id=exp_id,
+                                           _type=affinity_tool_models.EventType.SCHEDULING_POLICY_GENERATION_COMPLETE,
+                                           duration=_end - _start)
+    else:
+        affinity_tool_service.report_event(exp_id=exp_id,
+                                           _type=affinity_tool_models.EventType.DYNAMIC_SCHEDULING_POLICY_COMPLETE,
+                                           duration=_end - _start)
 
     agents = read_excel_and_construct_agents(pods_data, plan)
     deploys = read_excel_and_generate_yamls(agents, comm_data)

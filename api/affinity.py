@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
 from pydantic import BaseModel
 
@@ -8,6 +10,7 @@ from affinity.schedule_operator import terminate_schedule, operate_schedule
 from api.model import BaseResponse
 import service.affinity_tool_service as affinity_tool_service
 import service.models.affinity_tool_models as affinity_tool_models
+from util.logger import logger
 
 # 创建一个路由分组
 affinity_model = APIRouter(
@@ -97,6 +100,7 @@ async def allocate_node(allocate: Allocate):
     deploys = []
     deploy = generate_single(allocate.node, allocate.pod)
     deploys.append(deploy)
+    logger.info(f'migrate agent with exp:{allocate.exp_id} agent:{allocate.pod} to node:{allocate.node}')
     operate_schedule(exp_id=allocate.exp_id, deploys=deploys)
 
     return BaseResponse._ok()
