@@ -110,6 +110,8 @@ def sync_agents_graph(exp_data: ExperimentData):
 
 
 def report_plan(exp_id: int, exp_type: str, exp_plan: list[SingleSchedulerPlan]):
+    if int(os.getenv(REPORT_EVENT)) == 0:
+        return
     time.sleep(1)
     logger.info(f'report plan，size:{len(exp_plan)}')
     try:
